@@ -12,10 +12,13 @@
     <button id="recordButton">Grabar</button>
     <button id="stopButton" disabled>Detener</button>
 
+    <div id="feedback"></div>
+
     <script>
         const recordButton = document.getElementById('recordButton');
         const stopButton = document.getElementById('stopButton');
-        const webhookUrl = 'https://hook.us2.make.com/8jihc55lka1pres36v9iip8fe7485nmp';
+        const feedbackDiv = document.getElementById('feedback');
+        const webhookUrl = 'https://hook.us2.make.com/8jihc55lka1pres36v9iip8fe7485nmp'; // Tu URL de Make.com
 
         let mediaRecorder;
         let audioChunks = [];
@@ -32,6 +35,7 @@
 
             recordButton.disabled = true;
             stopButton.disabled = false;
+            feedbackDiv.innerHTML = 'Enviando audio para corrección...';
         };
 
         stopButton.onclick = () => {
@@ -44,18 +48,34 @@
             stopButton.disabled = true;
         };
 
-        function sendToMake(audioBlob) {
+        async function sendToMake(audioBlob) {
+            feedbackDiv.innerHTML = 'Recibiendo corrección...';
             const formData = new FormData();
             formData.append('audio', audioBlob, 'pronunciation.webm');
 
-            fetch(webhookUrl, {
-                method: 'POST',
-                body: formData
-            }).then(response => {
-                // Aquí puedes mostrar un mensaje de que el audio fue enviado
-                console.log('Audio enviado a Make.com');
-                alert('Audio enviado para su corrección.');
-            });
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+
+                if (result.status === 'correcto') {
+                    feedbackDiv.innerHTML = `<h3>${result.message}</h3>`;
+                } else {
+                    feedbackDiv.innerHTML = `<h3>${result.message}</h3>`;
+                }
+                
+                const audioPlayer = document.createElement('audio');
+                audioPlayer.controls = true;
+                audioPlayer.src = result.audio_url;
+                feedbackDiv.appendChild(audioPlayer);
+
+            } catch (error) {
+                feedbackDiv.innerHTML = 'Hubo un error al obtener la corrección. Intenta de nuevo.';
+                console.error(error);
+            }
         }
     </script>
 </body>
