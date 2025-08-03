@@ -150,9 +150,31 @@
             recordButton.disabled = true;
         }
 
+        let bestVoice = null;
+
+        function findAndSetBestVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            bestVoice = voices.find(voice => voice.name === 'Google US English' && voice.lang === 'en-US');
+            
+            if (!bestVoice) {
+                bestVoice = voices.find(voice => voice.lang === 'en-US');
+            }
+        }
+
+        findAndSetBestVoice();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = findAndSetBestVoice;
+        }
+
         function speak(text, lang, onEndCallback) {
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang;
+
+            if (lang === 'en-US' && bestVoice) {
+                utterance.voice = bestVoice;
+            } else {
+                utterance.lang = lang;
+            }
+
             if (onEndCallback) {
                 utterance.onend = onEndCallback;
             }
