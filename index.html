@@ -3,79 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corrector de Pronunciación</title>
+    <title>Corrector de Pronunciación (Versión Final)</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 2em; }
+        button { font-size: 1.2em; padding: 10px 20px; cursor: pointer; }
+        #feedback { margin-top: 20px; font-size: 1.2em; min-height: 50px; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+    </style>
 </head>
 <body>
     <h1>Ejercicio de Pronunciación</h1>
     <p>Di la siguiente frase: "I am learning English"</p>
 
-    <button id="recordButton">Grabar</button>
-    <button id="stopButton" disabled>Detener</button>
+    <button id="recordButton">Presiona para Grabar</button>
 
     <div id="feedback"></div>
 
     <script>
+        // --- Referencias a los elementos de la página ---
         const recordButton = document.getElementById('recordButton');
-        const stopButton = document.getElementById('stopButton');
         const feedbackDiv = document.getElementById('feedback');
-        const webhookUrl = 'https://hook.us2.make.com/8jihc55lka1pres36v9iip8fe7485nmp'; // <-- CORREGIDO: la URL ahora tiene comillas
+        const targetPhrase = "i am learning english";
 
-        let mediaRecorder;
-        let audioChunks = [];
+        // --- Comprobar si el navegador es compatible ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US'; // Escuchar en Inglés de Estados Unidos
+            recognition.interimResults = false;
 
-        recordButton.onclick = async () => {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.start();
+            // --- Qué hacer cuando el botón es presionado ---
+            recordButton.onclick = () => {
+                feedbackDiv.innerHTML = "Escuchando...";
+                feedbackDiv.className = '';
+                recordButton.disabled = true;
+                recognition.start();
+            };
+
+            // --- Qué hacer cuando se termina de detectar la voz ---
+            recognition.onspeechend = () => {
+                recognition.stop();
+                recordButton.disabled = false;
+                recordButton.innerHTML = "Presiona para Grabar";
+            };
             
-            audioChunks = [];
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
+            // --- Qué hacer cuando hay un resultado ---
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase().trim();
 
-            recordButton.disabled = true;
-            stopButton.disabled = false;
-            feedbackDiv.innerHTML = 'Enviando audio para corrección...';
-        };
-
-        stopButton.onclick = () => {
-            mediaRecorder.stop();
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                sendToMake(audioBlob);
-            };
-            recordButton.disabled = false;
-            stopButton.disabled = true;
-        };
-
-        async function sendToMake(audioBlob) {
-            feedbackDiv.innerHTML = 'Recibiendo corrección...';
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'pronunciation.webm');
-
-            try {
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-
-                if (result.status === 'correcto') {
+                if (transcript === targetPhrase) {
+                    // Si la pronunciación es CORRECTA
                     feedbackDiv.innerHTML = `<h3>¡Excelente! Tu pronunciación es perfecta.</h3>`;
+                    feedbackDiv.className = 'correct';
+                    speak("Excelente, tu pronunciación es perfecta.", "es-ES");
                 } else {
-                    feedbackDiv.innerHTML = `<h3>${result.message}</h3>`;
+                    // Si la pronunciación es INCORRECTA
+                    feedbackDiv.innerHTML = `
+                        <h3>Inténtalo de nuevo.</h3>
+                        <p>Escuché: "<em>${transcript}</em>"</p>
+                    `;
+                    feedbackDiv.className = 'incorrect';
+                    speak("La pronunciación es incorrecta. Se dice...", "es-ES", () => {
+                        speak("I am learning English", "en-US");
+                    });
                 }
-                
-                const audioPlayer = document.createElement('audio');
-                audioPlayer.controls = true;
-                audioPlayer.src = result.audio_url;
-                feedbackDiv.appendChild(audioPlayer);
+            };
 
-            } catch (error) {
-                feedbackDiv.innerHTML = 'Hubo un error al obtener la corrección. Intenta de nuevo.';
-                console.error(error);
+            // --- Qué hacer si hay un error ---
+            recognition.onerror = (event) => {
+                feedbackDiv.innerHTML = 'Hubo un error o no se detectó audio. Intenta de nuevo.';
+                feedbackDiv.className = 'incorrect';
+                recordButton.disabled = false;
+                recordButton.innerHTML = "Presiona para Grabar";
+            };
+
+        } else {
+            // Si el navegador NO es compatible
+            feedbackDiv.innerHTML = "Lo siento, tu navegador no es compatible con el reconocimiento de voz. Por favor, intenta con Google Chrome.";
+            recordButton.disabled = true;
+        }
+
+        // --- Función para que la página HABLE ---
+        function speak(text, lang, onEndCallback) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            if (onEndCallback) {
+                utterance.onend = onEndCallback;
             }
+            window.speechSynthesis.speak(utterance);
         }
     </script>
 </body>
