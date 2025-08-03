@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrector de Pronunciación</title>
+</head>
+<body>
+    <h1>Ejercicio de Pronunciación</h1>
+    <p>Di la siguiente frase: "I am learning English"</p>
+
+    <button id="recordButton">Grabar</button>
+    <button id="stopButton" disabled>Detener</button>
+
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const webhookUrl = 'TU_WEBHOOK_DE_MAKE'; // IMPORTANTE: Reemplaza esto con tu URL de Make.com
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        recordButton.onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+            
+            audioChunks = [];
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            recordButton.disabled = true;
+            stopButton.disabled = false;
+        };
+
+        stopButton.onclick = () => {
+            mediaRecorder.stop();
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendToMake(audioBlob);
+            };
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+        };
+
+        function sendToMake(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'pronunciation.webm');
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                // Aquí puedes mostrar un mensaje de que el audio fue enviado
+                console.log('Audio enviado a Make.com');
+                alert('Audio enviado para su corrección.');
+            });
+        }
+    </script>
+</body>
+</html>
