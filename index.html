@@ -18,7 +18,7 @@
         const recordButton = document.getElementById('recordButton');
         const stopButton = document.getElementById('stopButton');
         const feedbackDiv = document.getElementById('feedback');
-        const webhookUrl = 'https://hook.us2.make.com/8jihc55lka1pres36v9iip8fe7485nmp'; // Tu URL de Make.com
+        const webhookUrl = https://hook.us2.make.com/8jihc55lka1pres36v9iip8fe7485nmp
 
         let mediaRecorder;
         let audioChunks = [];
@@ -62,7 +62,7 @@
                 const result = await response.json();
 
                 if (result.status === 'correcto') {
-                    feedbackDiv.innerHTML = `<h3>${result.message}</h3>`;
+                    feedbackDiv.innerHTML = `<h3>¡Excelente! Tu pronunciación es perfecta.</h3>`;
                 } else {
                     feedbackDiv.innerHTML = `<h3>${result.message}</h3>`;
                 }
