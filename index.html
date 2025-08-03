@@ -1,87 +1,78 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corrector de Pronunciación (Versión Final)</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 2em; }
-        button { font-size: 1.2em; padding: 10px 20px; cursor: pointer; }
-        #feedback { margin-top: 20px; font-size: 1.2em; min-height: 50px; }
-        .correct { color: green; }
-        .incorrect { color: red; }
-    </style>
-</head>
-<body>
-    <h1>Ejercicio de Pronunciación</h1>
-    <p>Di la siguiente frase: "I am learning English"</p>
-
-    <button id="recordButton">Presiona para Grabar</button>
-
-    <div id="feedback"></div>
-
-    <script>
-        // --- Referencias a los elementos de la página ---
-        const recordButton = document.getElementById('recordButton');
+const recordButton = document.getElementById('recordButton');
         const feedbackDiv = document.getElementById('feedback');
         const targetPhrase = "i am learning english";
 
-        // --- Comprobar si el navegador es compatible ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
-            recognition.lang = 'en-US'; // Escuchar en Inglés de Estados Unidos
+            recognition.lang = 'en-US';
             recognition.interimResults = false;
 
-            // --- Qué hacer cuando el botón es presionado ---
             recordButton.onclick = () => {
                 feedbackDiv.innerHTML = "Escuchando...";
-                feedbackDiv.className = '';
                 recordButton.disabled = true;
                 recognition.start();
             };
 
-            // --- Qué hacer cuando se termina de detectar la voz ---
             recognition.onspeechend = () => {
                 recognition.stop();
                 recordButton.disabled = false;
-                recordButton.innerHTML = "Presiona para Grabar";
             };
             
-            // --- Qué hacer cuando hay un resultado ---
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                const result = event.results[0][0];
+                const transcript = result.transcript.toLowerCase().trim();
+                const confidence = result.confidence;
 
                 if (transcript === targetPhrase) {
-                    // Si la pronunciación es CORRECTA
-                    feedbackDiv.innerHTML = `<h3>¡Excelente! Tu pronunciación es perfecta.</h3>`;
-                    feedbackDiv.className = 'correct';
+                    feedbackDiv.innerHTML = `
+                        <h3 class="correct">¡Excelente! Tu pronunciación es perfecta.</h3>
+                        <p><strong>Confianza del Reconocimiento:</strong> ${Math.round(confidence * 100)}%</p>
+                    `;
                     speak("Excelente, tu pronunciación es perfecta.", "es-ES");
                 } else {
-                    // Si la pronunciación es INCORRECTA
+                    const targetWords = targetPhrase.split(' ');
+                    const spokenWords = transcript.split(' ');
+                    let analysisHTML = '';
+                    let correctWordsCount = 0;
+
+                    targetWords.forEach((targetWord, index) => {
+                        if (spokenWords[index] && spokenWords[index] === targetWord) {
+                            analysisHTML += `<span class="correct">${targetWord} </span>`;
+                            correctWordsCount++;
+                        } else {
+                            analysisHTML += `<span class="incorrect">${targetWord} </span>`;
+                        }
+                    });
+
+                    const score = Math.round((correctWordsCount / targetWords.length) * 10);
+
                     feedbackDiv.innerHTML = `
                         <h3>Inténtalo de nuevo.</h3>
                         <p>Escuché: "<em>${transcript}</em>"</p>
+                        <p><strong>Análisis:</strong></p>
+                        <div id="analysis">${analysisHTML}</div>
+                        <p><strong>Calificación:</strong> ${score} de 10</p>
+                        <p><strong>Confianza del Reconocimiento:</strong> ${Math.round(confidence * 100)}%</p>
                     `;
-                    feedbackDiv.className = 'incorrect';
-                    speak("La pronunciación es incorrecta. Se dice...", "es-ES", () => {
+                    
+                    // --- ESTA ES LA PARTE MODIFICADA ---
+                    // Primero, habla en español.
+                    speak("La pronunciación correcta es...", "es-ES", () => {
+                        // Cuando termine de hablar en español, pronuncia la frase en inglés.
                         speak("I am learning English", "en-US");
                     });
                 }
             };
 
-            // --- Qué hacer si hay un error ---
             recognition.onerror = (event) => {
                 feedbackDiv.innerHTML = 'Hubo un error o no se detectó audio. Intenta de nuevo.';
-                feedbackDiv.className = 'incorrect';
                 recordButton.disabled = false;
-                recordButton.innerHTML = "Presiona para Grabar";
             };
 
         } else {
-            // Si el navegador NO es compatible
-            feedbackDiv.innerHTML = "Lo siento, tu navegador no es compatible con el reconocimiento de voz. Por favor, intenta con Google Chrome.";
+            feedbackDiv.innerHTML = "Lo siento, tu navegador no es compatible con esta función. Por favor, usa Google Chrome.";
             recordButton.disabled = true;
         }
 
@@ -94,6 +85,3 @@
             }
             window.speechSynthesis.speak(utterance);
         }
-    </script>
-</body>
-</html>
