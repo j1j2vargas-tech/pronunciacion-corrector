@@ -17,7 +17,7 @@
             max-width: 800px;
             margin: auto;
         }
-        h1, h2 {
+        h1, h2, h3, h4 {
             color: #444;
         }
         #exercise-text {
@@ -59,6 +59,7 @@
             margin-top: 10px;
             margin-bottom: 20px;
             line-height: 1.8;
+            word-wrap: break-word;
         }
         .correct { 
             color: #28a745; 
@@ -68,6 +69,17 @@
             color: #dc3545; 
             font-weight: bold; 
             text-decoration: line-through;
+        }
+        #pronunciation-guide ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #pronunciation-guide li {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -87,8 +99,28 @@
     <script>
         const recordButton = document.getElementById('recordButton');
         const feedbackDiv = document.getElementById('feedback');
-        // El texto objetivo, limpiado para una mejor comparación
         const targetPhrase = "although they thought the weather would be awful the sun appeared through the thick clouds jonathan who had been thoroughly prepared for rain laughed and said this is better than i expected then they walked through the forest talking about philosophy theater and their thoughts on life";
+
+        // --- DICCIONARIO FONÉTICO ---
+        // Nota: 'z' se usa para el sonido 'th' suave, y 'd' para el 'th' fuerte.
+        const phoneticDictionary = {
+            "although": "ol-dóu",
+            "they": "déi",
+            "thought": "zot",
+            "weather": "ué-der",
+            "through": "zrú",
+            "thick": "zik",
+            "thoroughly": "zó-ro-li",
+            "laughed": "laft",
+            "said": "sed",
+            "better": "bé-ter",
+            "than": "dan",
+            "then": "den",
+            "philosophy": "fi-ló-so-fi",
+            "theater": "zí-a-ter",
+            "their": "der",
+            "thoughts": "zots"
+        };
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
@@ -110,7 +142,6 @@
             
             recognition.onresult = (event) => {
                 const result = event.results[0][0];
-                // Limpiamos la transcripción de la misma forma que el texto objetivo
                 const transcript = result.transcript.toLowerCase().trim().replace(/['’.,]/g, '');
                 const confidence = result.confidence;
 
@@ -118,6 +149,7 @@
                 const spokenWords = transcript.split(' ');
                 let analysisHTML = '';
                 let correctWordsCount = 0;
+                let incorrectWordsForGuide = [];
 
                 targetWords.forEach((targetWord, index) => {
                     if (spokenWords[index] && spokenWords[index] === targetWord) {
@@ -125,10 +157,25 @@
                         correctWordsCount++;
                     } else {
                         analysisHTML += `<span class="incorrect">${targetWord} </span>`;
+                        if (phoneticDictionary[targetWord]) {
+                            incorrectWordsForGuide.push({
+                                word: targetWord,
+                                pronunciation: phoneticDictionary[targetWord]
+                            });
+                        }
                     }
                 });
 
                 const score = Math.round((correctWordsCount / targetWords.length) * 100);
+
+                let pronunciationGuideHTML = '';
+                if (incorrectWordsForGuide.length > 0) {
+                    pronunciationGuideHTML = '<h4>Guía de Pronunciación:</h4><div id="pronunciation-guide"><ul>';
+                    incorrectWordsForGuide.forEach(item => {
+                        pronunciationGuideHTML += `<li><strong>${item.word}</strong> se pronuncia <em>${item.pronunciation}</em></li>`;
+                    });
+                    pronunciationGuideHTML += '</ul></div>';
+                }
 
                 feedbackDiv.innerHTML = `
                     <h3>Análisis de tu Pronunciación:</h3>
@@ -137,6 +184,7 @@
                     <div id="analysis">${analysisHTML}</div>
                     <p><strong>Calificación:</strong> ${score}% de precisión</p>
                     <p><strong>Confianza del Reconocimiento:</strong> ${Math.round(confidence * 100)}%</p>
+                    ${pronunciationGuideHTML}
                 `;
             };
 
