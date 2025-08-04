@@ -3,20 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corrector de Pronunciación Final</title>
+    <title>Advanced Pronunciation Exercise</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             text-align: center; 
-            padding: 2em; 
+            padding: 1em; 
             background-color: #f4f4f9;
             color: #333;
+            line-height: 1.6;
         }
-        h1 {
+        main {
+            max-width: 800px;
+            margin: auto;
+        }
+        h1, h2 {
             color: #444;
         }
-        p {
+        #exercise-text {
             font-size: 1.2em;
+            text-align: left;
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
         }
         button { 
             font-size: 1.2em; 
@@ -33,9 +43,6 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
-        button:hover:enabled {
-            background-color: #0056b3;
-        }
         #feedback { 
             margin-top: 20px; 
             font-size: 1.1em; 
@@ -44,12 +51,14 @@
             border-radius: 8px;
             background-color: #ffffff;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: left;
         }
         #analysis {
-            font-size: 1.8em;
-            letter-spacing: 2px;
+            font-size: 1.4em;
+            letter-spacing: 1px;
             margin-top: 10px;
             margin-bottom: 20px;
+            line-height: 1.8;
         }
         .correct { 
             color: #28a745; 
@@ -63,17 +72,23 @@
     </style>
 </head>
 <body>
-    <h1>Ejercicio de Pronunciación</h1>
-    <p>Di la siguiente frase: "I am learning English"</p>
+    <main>
+        <h1>Advanced Pronunciation Exercise</h1>
+        <h2>Paso 1: Lee en voz alta el siguiente párrafo</h2>
+        <div id="exercise-text">
+            <p>“Although they thought the weather would be awful, the sun appeared through the thick clouds. Jonathan, who had been thoroughly prepared for rain, laughed and said, ‘This is better than I expected.’ Then they walked through the forest, talking about philosophy, theater, and their thoughts on life.”</p>
+        </div>
 
-    <button id="recordButton">Presiona para Grabar</button>
+        <button id="recordButton">Presiona para Grabar</button>
 
-    <div id="feedback"></div>
+        <div id="feedback"></div>
+    </main>
 
     <script>
         const recordButton = document.getElementById('recordButton');
         const feedbackDiv = document.getElementById('feedback');
-        const targetPhrase = "i am learning english";
+        // El texto objetivo, limpiado para una mejor comparación
+        const targetPhrase = "although they thought the weather would be awful the sun appeared through the thick clouds jonathan who had been thoroughly prepared for rain laughed and said this is better than i expected then they walked through the forest talking about philosophy theater and their thoughts on life";
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
@@ -95,49 +110,34 @@
             
             recognition.onresult = (event) => {
                 const result = event.results[0][0];
-                const transcript = result.transcript.toLowerCase().trim();
+                // Limpiamos la transcripción de la misma forma que el texto objetivo
+                const transcript = result.transcript.toLowerCase().trim().replace(/['’.,]/g, '');
                 const confidence = result.confidence;
 
-                if (transcript === targetPhrase) {
-                    feedbackDiv.innerHTML = `
-                        <h3 class="correct">¡Excelente! Tu pronunciación es perfecta.</h3>
-                        <p><strong>Confianza del Reconocimiento:</strong> ${Math.round(confidence * 100)}%</p>
-                    `;
-                    speak("Excellent, your pronunciation is perfect.", "en-US");
-                } else {
-                    const targetWords = targetPhrase.split(' ');
-                    const spokenWords = transcript.split(' ');
-                    let analysisHTML = '';
-                    let correctWordsCount = 0;
+                const targetWords = targetPhrase.split(' ');
+                const spokenWords = transcript.split(' ');
+                let analysisHTML = '';
+                let correctWordsCount = 0;
 
-                    targetWords.forEach((targetWord, index) => {
-                        if (spokenWords[index] && spokenWords[index] === targetWord) {
-                            analysisHTML += `<span class="correct">${targetWord} </span>`;
-                            correctWordsCount++;
-                        } else {
-                            analysisHTML += `<span class="incorrect">${targetWord} </span>`;
-                        }
-                    });
+                targetWords.forEach((targetWord, index) => {
+                    if (spokenWords[index] && spokenWords[index] === targetWord) {
+                        analysisHTML += `<span class="correct">${targetWord} </span>`;
+                        correctWordsCount++;
+                    } else {
+                        analysisHTML += `<span class="incorrect">${targetWord} </span>`;
+                    }
+                });
 
-                    const score = Math.round((correctWordsCount / targetWords.length) * 10);
+                const score = Math.round((correctWordsCount / targetWords.length) * 100);
 
-                    feedbackDiv.innerHTML = `
-                        <h3>Inténtalo de nuevo.</h3>
-                        <p>Escuché: "<em>${transcript}</em>"</p>
-                        <p><strong>Análisis:</strong></p>
-                        <div id="analysis">${analysisHTML}</div>
-                        <p><strong>Calificación:</strong> ${score} de 10</p>
-                        <p><strong>Confianza del Reconocimiento:</strong> ${Math.round(confidence * 100)}%</p>
-                        <button id="replayButton">Reproducir Corrección</button>
-                    `;
-
-                    const replayButton = document.getElementById('replayButton');
-                    replayButton.onclick = () => {
-                        speakCorrection();
-                    };
-                    
-                    speakCorrection();
-                }
+                feedbackDiv.innerHTML = `
+                    <h3>Análisis de tu Pronunciación:</h3>
+                    <p><strong>Transcripción:</strong> "<em>${transcript}</em>"</p>
+                    <p><strong>Palabras Correctas:</strong></p>
+                    <div id="analysis">${analysisHTML}</div>
+                    <p><strong>Calificación:</strong> ${score}% de precisión</p>
+                    <p><strong>Confianza del Reconocimiento:</strong> ${Math.round(confidence * 100)}%</p>
+                `;
             };
 
             recognition.onerror = (event) => {
@@ -148,43 +148,6 @@
         } else {
             feedbackDiv.innerHTML = "Lo siento, tu navegador no es compatible con esta función. Por favor, usa Google Chrome.";
             recordButton.disabled = true;
-        }
-
-        let bestVoice = null;
-
-        function findAndSetBestVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            bestVoice = voices.find(voice => voice.name === 'Google US English' && voice.lang === 'en-US');
-            
-            if (!bestVoice) {
-                bestVoice = voices.find(voice => voice.lang === 'en-US');
-            }
-        }
-
-        findAndSetBestVoice();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = findAndSetBestVoice;
-        }
-
-        function speak(text, lang, onEndCallback) {
-            const utterance = new SpeechSynthesisUtterance(text);
-
-            if (lang === 'en-US' && bestVoice) {
-                utterance.voice = bestVoice;
-            } else {
-                utterance.lang = lang;
-            }
-
-            if (onEndCallback) {
-                utterance.onend = onEndCallback;
-            }
-            window.speechSynthesis.speak(utterance);
-        }
-        
-        function speakCorrection() {
-            speak("The correct pronunciation is...", "en-US", () => {
-                speak("I am learning English", "en-US");
-            });
         }
     </script>
 </body>
